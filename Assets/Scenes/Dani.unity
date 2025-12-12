@@ -770,7 +770,7 @@ GameObject:
   - component: {fileID: 510768381}
   - component: {fileID: 510768380}
   - component: {fileID: 510768384}
-  - component: {fileID: 510768385}
+  - component: {fileID: 510768386}
   m_Layer: 0
   m_Name: Capsule
   m_TagString: Untagged
@@ -831,7 +831,7 @@ Rigidbody2D:
   m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_GravityScale: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 461ac60774836f5429d51ab7fd5b084f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -840,7 +840,7 @@ Rigidbody2D:
     m_Bits: 0
   m_Interpolate: 0
   m_SleepingMode: 1
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
   m_Constraints: 0
 --- !u!212 &510768382
 SpriteRenderer:
@@ -905,14 +905,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 510768379}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0.022256875, w: 0.9997523}
-  m_LocalPosition: {x: 2.29, y: -1.44, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: -0.004012068, w: 0.99999195}
+  m_LocalPosition: {x: 2.2894776, y: -1.4400096, z: 0}
   m_LocalScale: {x: 2.20049, y: 0.2880598, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1235710316}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -2.551}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -0.46}
 --- !u!114 &510768384
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -927,7 +927,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _skateTransform: {fileID: 510768383}
   maxSpeed: 12
-  acceleration: 60
+  acceleration: 30
   deceleration: 40
   turnSpeed: 80
   airControlMult: 0.8
@@ -942,7 +942,7 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
---- !u!114 &510768385
+--- !u!114 &510768386
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -951,17 +951,25 @@ MonoBehaviour:
   m_GameObject: {fileID: 510768379}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1b2041a793be1fd4cae0608540ee7d32, type: 3}
+  m_Script: {fileID: 11500000, guid: 05b373b59dc2453488d383fe5c30f52a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  airCorrectionSpeed: 2
-  alignWithSlopes: 1
-  groundAlignmentSpeed: 10
-  groundCheck: {fileID: 0}
+  visualDebugger: {fileID: 0}
+  tiltLeftKey: 113
+  tiltRightKey: 101
+  airRotationSpeed: 250
+  autoStabilizeSpeed: 5
+  maxRotationAngle: 60
+  safeRotationHeight: 1.5
+  slopeStickForce: 50
+  momentumPreservation: 1
+  minFallSpeed: 5
+  groundCheck: {fileID: 1235710316}
   groundLayer:
     serializedVersion: 2
-    m_Bits: 0
-  groundCheckSize: {x: 0.5, y: 0.1}
+    m_Bits: 64
+  groundBoxSize: {x: 0.8, y: 0.2}
+  groundAlignSpeed: 15
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -1679,7 +1687,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1235710316}
   m_Layer: 0
-  m_Name: Ground
+  m_Name: GroundController
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1694,7 +1702,7 @@ Transform:
   m_GameObject: {fileID: 1235710315}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.61, y: -0.01, z: 0}
+  m_LocalPosition: {x: -0.01, y: -1.04, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
