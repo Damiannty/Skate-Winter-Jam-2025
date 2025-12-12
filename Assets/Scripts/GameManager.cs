@@ -1,15 +1,17 @@
 using UnityEngine;
 using System.Collections.Generic;
-using System.Linq; // Necesario para funciones de listas avanzadas
+using System.Linq;
 
 public class GameManager : MonoBehaviour
 {
     // --- Singleton (Para acceso global) ---
     public static GameManager Instance { get; private set; }
-
+    
     [Header("Configuración General")]
     public Transform playerTransform; // Arrastra aquí al jugador
-    public List<Transform> doorLocations; // Arrastra aquí todos los puntos de entrega (GameObjects vacíos o puertas)
+    
+    // CAMBIO CLAVE: Ahora usamos la lista de handlers, no solo transforms
+    public List<DoorCollisionHandler> doorHandlers; 
 
     [Header("Configuración de Puntuación")]
     public float baseScorePerDelivery = 1000f; // Puntos base por entregar
@@ -19,8 +21,11 @@ public class GameManager : MonoBehaviour
     // --- Variables de Estado ---
     private float currentTimer;
     private bool isDelivering;
-    private Transform currentTargetDoor;
+    
+    // Almacena el handler de la puerta actual activa
+    private DoorCollisionHandler currentActiveDoor; 
     private int fallCount;
+    private float trickScore = 0; // Puntos obtenidos por trucos en la entrega actual
 
     // Eventos (Opcional: Para actualizar la UI cuando algo cambia)
     public delegate void DeliveryAction(Transform target);
@@ -36,7 +41,12 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        // Iniciar el primer encargo al arrancar el juego (o llámalo cuando quieras)
+        // Fallback: Si la lista está vacía, busca todas las puertas en la escena
+        if (doorHandlers == null || doorHandlers.Count == 0)
+        {
+            doorHandlers = FindObjectsByType<DoorCollisionHandler>(FindObjectsSortMode.None).ToList();
+        }
+        
         StartNewDelivery();
     }
 
@@ -45,7 +55,6 @@ public class GameManager : MonoBehaviour
         if (isDelivering)
         {
             currentTimer += Time.deltaTime;
-            // Aquí podrías actualizar un texto de UI con el tiempo:
             // UIManager.Instance.UpdateTimer(currentTimer);
         }
     }
@@ -54,38 +63,61 @@ public class GameManager : MonoBehaviour
 
     public void StartNewDelivery()
     {
-        // 1. Reseteamos variables
+        // 1. Limpieza: Desactivar la puerta anterior (si existe)
+        if (currentActiveDoor != null)
+        {
+            currentActiveDoor.isGoalDoor = false;
+        }
+        
+        // 2. Reseteamos variables para la nueva entrega
         currentTimer = 0f;
         fallCount = 0;
+        trickScore = 0f; // Resetear el puntaje de trucos para el nuevo pedido
         isDelivering = true;
 
-        // 2. Seleccionar siguiente puerta basada en distancia
-        currentTargetDoor = SelectNextDoorWeighted();
+        // 3. Seleccionar siguiente puerta basada en distancia
+        currentActiveDoor = SelectNextDoorWeighted();
 
-        Debug.Log($"Nuevo pedido! Ve a: {currentTargetDoor.name}");
+        // 4. Activación: Decirle a esa puerta "Tú eres la meta"
+        if (currentActiveDoor != null)
+        {
+            currentActiveDoor.isGoalDoor = true;
 
-        // Notificar a otros scripts (como la UI o la flecha de guía)
-        OnNewOrderReceived?.Invoke(currentTargetDoor);
+            Debug.Log($"Nuevo pedido! Ve a: {currentActiveDoor.name}");
+
+            // Notificar UI (Pasamos el Transform de la puerta activa para la flecha/UI)
+            UIManager.Instance.ShowNewTarget(currentActiveDoor.transform);
+            OnNewOrderReceived?.Invoke(currentActiveDoor.transform);
+        }
     }
 
-    // Llamado cuando el jugador toca la puerta destino
-    // 'trickScore' debe venir de tu script de trucos
-    public void CompleteDelivery(float trickScore)
+    // Llamado EXCLUSIVAMENTE por DoorCollisionHandler cuando el jugador entra en la puerta correcta
+    public void CompleteDelivery()
     {
         if (!isDelivering) return;
 
         isDelivering = false;
 
-        // 1. Cálculo de Puntuación
+        // 1. Cálculo de Puntuación (usamos el trickScore acumulado en esta instancia)
         float finalScore = CalculateScore(trickScore);
 
-        Debug.Log($"Entregado! Puntuación Total: {finalScore}");
-        
-        // Notificar UI de puntuación final
+        // 2. Notificar UI y eventos
+        UIManager.Instance.UpdateScore(finalScore); // Si tienes este método en tu UIManager
+        UIManager.Instance.ShowDeliveryComplete();
         OnDeliveryCompleted?.Invoke(finalScore);
 
-        // 2. Opcional: Iniciar siguiente pedido inmediatamente o esperar input
+        // 3. Iniciar siguiente pedido
         StartNewDelivery(); 
+    }
+
+    // Llamar la funcion cuando termine un combo de trucos
+    public void AddTrickScore(float points)
+    {
+        if (isDelivering)
+        {
+            trickScore += points;
+            Debug.Log($"Puntos por trucos acumulados: {trickScore}");
+        }
     }
 
     public void RegisterFall()
@@ -99,21 +131,23 @@ public class GameManager : MonoBehaviour
 
     // --- Algoritmos Internos ---
 
-    private Transform SelectNextDoorWeighted()
+    private DoorCollisionHandler SelectNextDoorWeighted()
     {
-        // Filtrar la lista para no incluir la puerta donde estamos ahora (si estamos en una)
-        // Asumimos que si estamos cerca de una puerta (distancia < 2), es la actual.
-        List<Transform> validDoors = doorLocations.Where(d => Vector2.Distance(playerTransform.position, d.position) > 2.0f).ToList();
+        // Filtrar la lista para no incluir la puerta donde estamos ahora
+        List<DoorCollisionHandler> validDoors = doorHandlers
+            // Usamos d.transform.position para obtener la posición de la puerta
+            .Where(d => Vector2.Distance(playerTransform.position, d.transform.position) > 2.0f)
+            .ToList();
 
-        if (validDoors.Count == 0) return doorLocations[Random.Range(0, doorLocations.Count)];
+        if (validDoors.Count == 0) return doorHandlers[Random.Range(0, doorHandlers.Count)];
 
         // Algoritmo de "Ruleta Ponderada"
         float totalDistance = 0f;
         
         // Calcular la suma total de distancias
-        foreach (Transform door in validDoors)
+        foreach (var door in validDoors)
         {
-            totalDistance += Vector2.Distance(playerTransform.position, door.position);
+            totalDistance += Vector2.Distance(playerTransform.position, door.transform.position);
         }
 
         // Elegir un valor aleatorio dentro de esa suma total
@@ -121,25 +155,23 @@ public class GameManager : MonoBehaviour
         float currentSum = 0f;
 
         // Encontrar qué puerta corresponde a ese valor
-        foreach (Transform door in validDoors)
+        foreach (var door in validDoors)
         {
-            currentSum += Vector2.Distance(playerTransform.position, door.position);
+            currentSum += Vector2.Distance(playerTransform.position, door.transform.position);
             
-            // Si superamos el valor aleatorio, esta es la elegida.
-            // Matemáticamente, esto hace que las distancias más grandes ocupen más "espacio" en la ruleta
             if (currentSum >= randomValue)
             {
                 return door;
             }
         }
 
-        // Fallback por si acaso
+        // Fallback
         return validDoors.Last();
     }
 
     private float CalculateScore(float trickPoints)
     {
-        // Fórmula: (Puntos Trucos) + (Base) - (Tiempo * factor) - (Caídas * castigo)
+        // Fórmula: Puntuación Final = (Base + Trucos) - (Tiempo * factor) - (Caídas * castigo)
         
         float timeDeduction = currentTimer * timePenaltyFactor;
         float fallDeduction = fallCount * fallPenalty;
@@ -150,9 +182,10 @@ public class GameManager : MonoBehaviour
         return Mathf.Max(0, total);
     }
     
-    // Método auxiliar para saber cuál es el objetivo actual (útil para la UI de la brújula)
+    // Método auxiliar para saber cuál es el objetivo actual (útil para la flecha)
     public Transform GetCurrentTarget()
     {
-        return currentTargetDoor;
+        // Devuelve el Transform de la puerta activa
+        return currentActiveDoor != null ? currentActiveDoor.transform : null;
     }
 }

@@ -18,7 +18,7 @@ public class DirectionArrow : MonoBehaviour
     private void Start()
     {
         // 1. Obtener componentes
-        spriteRenderer = GetComponent<SpriteRenderer>();
+        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         if (spriteRenderer == null)
         {
             Debug.LogError("El objeto de la flecha necesita un SpriteRenderer.");
@@ -63,8 +63,8 @@ public class DirectionArrow : MonoBehaviour
         // 2. Lógica de Rotación (solo si hay un objetivo)
         if (targetTransform != null && playerTransform != null)
         {
-            // La flecha se mueve con el jugador
-            transform.position = playerTransform.position;
+           
+           transform.position = playerTransform.position; // Mantener la flecha en la posición del jugador
 
             // Calcular la dirección y el ángulo (Lógica de rotación es la misma)
             Vector3 direction = targetTransform.position - playerTransform.position;
