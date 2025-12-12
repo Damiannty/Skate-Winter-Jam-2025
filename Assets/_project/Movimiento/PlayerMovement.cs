@@ -3,7 +3,8 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController : MonoBehaviour
 {
-    [Header("--- MOVIMIENTO HORIZONTAL ---")]
+    [Header("--- MOVIMIENTO HORIZONTAL ---")] 
+    [SerializeField] private Transform _skateTransform;
     public float maxSpeed = 12f;
     public float acceleration = 60f; // Qué tan rápido arranca
     public float deceleration = 40f; // Qué tan rápido frena (suelo)
@@ -132,7 +133,7 @@ public class PlayerController : MonoBehaviour
         // Aplicamos la fuerza de movimiento
         // Usamos ForceMode2D.Force para movimiento fluido basado en masa
         float movement = speedDif * accelRate;
-        rb.AddForce(movement * Vector2.right);
+        rb.AddForce(movement * _skateTransform.right);
     }
 
     private void ApplyGravity()
