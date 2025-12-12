@@ -926,22 +926,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _skateTransform: {fileID: 510768383}
-  maxSpeed: 12
+  maxSpeed: 30
   acceleration: 30
-  deceleration: 40
-  turnSpeed: 80
-  airControlMult: 0.8
-  jumpForce: 20
+  braking: 40
+  friction: 5
+  diveAcceleration: 100
+  diveAngleThreshold: 45
+  jumpForce: 30
   jumpCutMultiplier: 0.5
   gravityScale: 5
   fallGravityMult: 1.5
-  coyoteTime: 0.1
-  jumpBufferTime: 0.1
   groundCheck: {fileID: 1235710316}
   groundCheckSize: {x: 0.5, y: 0.1}
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
+  coyoteTime: 0.1
+  jumpBufferTime: 0.1
 --- !u!114 &510768386
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -961,7 +962,7 @@ MonoBehaviour:
   autoStabilizeSpeed: 5
   maxRotationAngle: 60
   safeRotationHeight: 1.5
-  slopeStickForce: 50
+  slopeStickForce: 100
   momentumPreservation: 1
   minFallSpeed: 5
   groundCheck: {fileID: 1235710316}
@@ -2596,6 +2597,10 @@ PrefabInstance:
     - target: {fileID: 8496975643400399346, guid: 1b82bb2746a5e484990054a96d7d8f4f, type: 3}
       propertyPath: m_Layer
       value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8496975643400399346, guid: 1b82bb2746a5e484990054a96d7d8f4f, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
