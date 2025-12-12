@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]
@@ -5,6 +6,24 @@ public class PlayerController : MonoBehaviour
 {
     [Header("--- REFERENCIAS ---")]
     [SerializeField] private Transform _skateTransform; 
+    private SpriteRenderer _spriteRenderer; 
+
+    [Header("--- INPUT DE SECUENCIA (SALTO) ---")]
+    public float jumpSequenceWindow = 0.25f; 
+
+    [Header("--- TRUCOS (COMBO AÉREO) ---")]
+    public float comboTimeout = 0.5f; 
+    
+    [Tooltip("Tiempo (segundos) que dura el truco. Durante este tiempo eres ROJO y si tocas suelo te estrellas.")]
+    public float trickDuration = 1.0f; // <--- NUEVA VARIABLE MODIFICABLE
+
+    [Tooltip("Tiempo (segundos) que te quedas aturdido (VERDE) y sin control si aterrizas mal.")]
+    public float crashDuration = 1.5f; // <--- NUEVA VARIABLE MODIFICABLE
+
+    private int comboStep = 0; 
+    private float lastComboTime; 
+    private bool isDoingTrick = false; 
+    private Coroutine currentTrickRoutine; 
 
     [Header("--- MOVIMIENTO SUELO ---")]
     public float maxSpeed = 12f;
@@ -13,10 +32,7 @@ public class PlayerController : MonoBehaviour
     public float friction = 5f; 
 
     [Header("--- MOVIMIENTO PICADO ---")]
-    [Tooltip("Fuerza del impulso al picar.")]
     public float diveAcceleration = 100f; 
-    
-    [Tooltip("Ángulo mínimo para activar el picado (Ej: 30 grados).")]
     public float diveAngleThreshold = 30f;
 
     [Header("--- SALTO & GRAVEDAD ---")]
@@ -41,9 +57,14 @@ public class PlayerController : MonoBehaviour
     private float knockbackCounter; 
     private bool isFacingRight = true;
 
+    private float lastDownPressTime = -100f; 
+    private Color originalColor; 
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        _spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+        if (_spriteRenderer != null) originalColor = _spriteRenderer.color;
         if (_skateTransform == null) _skateTransform = transform;
     }
 
@@ -58,21 +79,31 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        if (knockbackCounter > 0) { knockbackCounter -= Time.deltaTime; return; }
+        // SI ESTAMOS BLOQUEADOS (Por Barril o por Crash)
+        if (knockbackCounter > 0)
+        {
+            knockbackCounter -= Time.deltaTime;
+            
+            // Si el tiempo de crash se acaba, restauramos el color
+            if (knockbackCounter <= 0 && _spriteRenderer != null)
+            {
+                _spriteRenderer.color = originalColor;
+            }
+            return; 
+        }
 
         moveInput = Input.GetAxisRaw("Horizontal");
 
-        // Saltos
-        if (Input.GetButtonDown("Jump")) bufferCounter = jumpBufferTime;
-        else bufferCounter -= Time.deltaTime;
+        HandleJumpSequence();
+        HandleAirCombo();
 
-        if (Input.GetButtonUp("Jump") && rb.linearVelocity.y > 0f)
+        bool upKeyReleased = Input.GetKeyUp(KeyCode.W) || Input.GetKeyUp(KeyCode.UpArrow);
+        if (upKeyReleased && rb.linearVelocity.y > 0f)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.y * jumpCutMultiplier);
             coyoteCounter = 0f; 
         }
 
-        // Flip visual (Solo en suelo)
         if (isGrounded)
         {
             if (moveInput > 0 && !isFacingRight) Flip();
@@ -80,10 +111,85 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    // --- LÓGICA DE TRUCOS ---
+    private void HandleAirCombo()
+    {
+        if (isGrounded) { comboStep = 0; return; }
+        if (Time.time - lastComboTime > comboTimeout && comboStep > 0) comboStep = 0;
+        if (isDoingTrick) return; 
+
+        if (comboStep == 0)
+        {
+            if (Input.GetKeyDown(KeyCode.Q)) { comboStep = 1; lastComboTime = Time.time; }
+        }
+        else if (comboStep == 1)
+        {
+            if (Input.GetKeyDown(KeyCode.E)) { comboStep = 2; lastComboTime = Time.time; }
+        }
+        else if (comboStep == 2)
+        {
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                if (currentTrickRoutine != null) StopCoroutine(currentTrickRoutine);
+                currentTrickRoutine = StartCoroutine(PerformTrickVisuals());
+                comboStep = 0; 
+            }
+        }
+    }
+
+    private IEnumerator PerformTrickVisuals()
+    {
+        isDoingTrick = true; 
+
+        if (_spriteRenderer != null) _spriteRenderer.color = Color.red;
+
+        // USA LA VARIABLE NUEVA (trickDuration)
+        yield return new WaitForSeconds(trickDuration);
+
+        if (_spriteRenderer != null) _spriteRenderer.color = originalColor;
+        isDoingTrick = false; 
+    }
+
+    // --- LÓGICA DE CHOQUE (CRASH) ---
+    private void TriggerCrash()
+    {
+        if (currentTrickRoutine != null) StopCoroutine(currentTrickRoutine);
+        isDoingTrick = false;
+
+        if (_spriteRenderer != null) _spriteRenderer.color = Color.green;
+
+        // USA LA VARIABLE NUEVA (crashDuration)
+        knockbackCounter = crashDuration; 
+        
+        Debug.Log("¡CRASH! Aterrizaje fallido.");
+    }
+
+    private void HandleJumpSequence()
+    {
+        if (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow)) lastDownPressTime = Time.time;
+
+        if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow))
+        {
+            float timeSinceDown = Time.time - lastDownPressTime;
+            if (timeSinceDown <= jumpSequenceWindow)
+            {
+                bufferCounter = jumpBufferTime;
+                lastDownPressTime = -100f; 
+            }
+        }
+        bufferCounter -= Time.deltaTime;
+    }
+
     private void FixedUpdate()
     {
         bool wasGrounded = isGrounded;
         isGrounded = Physics2D.OverlapBox(groundCheck.position, groundCheckSize, 0f, groundLayer);
+
+        // DETECCIÓN DE ATERRIZAJE FALLIDO
+        if (isGrounded && isDoingTrick)
+        {
+            TriggerCrash();
+        }
 
         if (knockbackCounter > 0) { ApplyGravity(); return; }
 
@@ -97,67 +203,35 @@ public class PlayerController : MonoBehaviour
 
     private void ApplyMovement()
     {
-        // 1. OBTENER EL VECTOR DE FUERZA REAL
-        // Esta función calcula hacia dónde nos moveríamos si aceleramos AHORA mismo
-        // basándose en el Input (-1 o 1) y la rotación Z del Rigidbody.
         Vector3 intendedDir = GetInputDirectionVector();
 
-        // ---------------------------------------------------------
-        // CASO A: ESTAMOS EN EL AIRE (PICADO)
-        // ---------------------------------------------------------
         if (!isGrounded)
         {
-            // ¿Estamos intentando ir hacia ABAJO?
-            // Si intendedDir.y es muy negativo, significa que la rotación + el input apuntan al suelo.
-            // Convertimos el ángulo umbral a Seno (Ej: 30º -> 0.5)
             float verticalThreshold = -Mathf.Sin(diveAngleThreshold * Mathf.Deg2Rad);
-            
             bool isDiving = intendedDir.y < verticalThreshold;
 
-            if (isDiving && moveInput != 0)
-            {
-                // ¡PICADO! Aplicamos la fuerza en esa dirección exacta
-                rb.AddForce(intendedDir * diveAcceleration);
-                
-                // Debug Cyan: Muestra que el picado funciona
-                Debug.DrawRay(transform.position, intendedDir * 3, Color.cyan);
-            }
-            return; // En el aire no hay más control
+            if (isDiving && moveInput != 0) rb.AddForce(intendedDir * diveAcceleration);
+            return; 
         }
 
-        // ---------------------------------------------------------
-        // CASO B: ESTAMOS EN EL SUELO (NORMAL)
-        // ---------------------------------------------------------
-        
-        // Debug Verde: Muestra hacia dónde te mueves en el suelo
-        Debug.DrawRay(transform.position, intendedDir * 2, Color.green);
-
         float currentSpeedInDir = Vector2.Dot(rb.linearVelocity, intendedDir);
-        float targetSpeed = Mathf.Abs(moveInput) * maxSpeed; // Usamos Abs porque intendedDir ya tiene el signo
+        float targetSpeed = Mathf.Abs(moveInput) * maxSpeed; 
         float speedDif = targetSpeed - currentSpeedInDir;
 
         float accelRate = 0;
 
         if (Mathf.Abs(moveInput) > 0.01f)
         {
-            // Si estamos intentando acelerar
             if (currentSpeedInDir < targetSpeed)
             {
-                // Inercia Sonic: Si ya vamos volando, no frenamos
                 if (currentSpeedInDir > maxSpeed) accelRate = 0;
                 else accelRate = acceleration;
             }
-            else
-            {
-                // Si vamos demasiado rápido en esa dirección (y no es por inercia permitida), frenamos suave
-                 accelRate = 0; 
-            }
+            else accelRate = 0; 
         }
         else
         {
-            // Fricción al soltar teclas
             accelRate = friction; 
-            // Si soltamos teclas, intendedDir es 0, así que recalculamos un vector de frenado opuesto a velocidad
             if(rb.linearVelocity.magnitude > 0.1f)
             {
                 intendedDir = -rb.linearVelocity.normalized;
@@ -165,13 +239,8 @@ public class PlayerController : MonoBehaviour
             }
         }
         
-        // CORRECCIÓN FRENADA OPUESTA
-        // Si pulsamos dirección contraria a la que vamos
         float projectedVel = Vector2.Dot(rb.linearVelocity, intendedDir);
-        if (moveInput != 0 && projectedVel < -0.1f)
-        {
-            accelRate = braking;
-        }
+        if (moveInput != 0 && projectedVel < -0.1f) accelRate = braking;
 
         rb.AddForce(intendedDir * speedDif * accelRate);
     }
@@ -207,22 +276,12 @@ public class PlayerController : MonoBehaviour
         transform.localScale = scale;
     }
 
-    // --- LA SOLUCIÓN MATEMÁTICA ---
-    // Esta función ignora el Flip visual y calcula el vector basándose solo en Input y Rotación Z
     private Vector3 GetInputDirectionVector()
     {
         if (moveInput == 0) return Vector3.zero;
-
-        // 1. Coger el vector "Derecha" (1, 0)
         Vector3 dir = Vector3.right;
-
-        // 2. Rotarlo por el ángulo Z del Rigidbody
         dir = Quaternion.Euler(0, 0, rb.rotation) * dir;
-
-        // 3. Multiplicarlo por el Input (-1 o 1)
-        // Si pulsas Izquierda (-1), el vector se invierte correctamente
         dir *= moveInput;
-
         return dir;
     }
 

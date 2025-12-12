@@ -315,6 +315,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _skateTransform: {fileID: 290161584}
+  jumpSequenceWindow: 0.25
+  comboTimeout: 0.5
+  trickDuration: 0.5
+  crashDuration: 1
   maxSpeed: 20
   acceleration: 30
   braking: 40
