@@ -1160,8 +1160,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'T:'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 3844cb27b23956541b424d8ea1d7530d, type: 2}
-  m_sharedMaterial: {fileID: -3742416584603608768, guid: 3844cb27b23956541b424d8ea1d7530d, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1468,8 +1468,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Paquete entregado!
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 3844cb27b23956541b424d8ea1d7530d, type: 2}
-  m_sharedMaterial: {fileID: -3742416584603608768, guid: 3844cb27b23956541b424d8ea1d7530d, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -2771,8 +2771,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: "Puntuaci\xF3n:"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 3844cb27b23956541b424d8ea1d7530d, type: 2}
-  m_sharedMaterial: {fileID: -3742416584603608768, guid: 3844cb27b23956541b424d8ea1d7530d, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -3029,8 +3029,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Nuevo destino!
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: b39cb63ee48cfc641b923309a18acb6b, type: 2}
-  m_sharedMaterial: {fileID: 2376139699568526934, guid: b39cb63ee48cfc641b923309a18acb6b, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
