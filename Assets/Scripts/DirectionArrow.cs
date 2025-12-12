@@ -58,6 +58,7 @@ public class DirectionArrow : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.LeftAlt) || Input.GetKeyDown(KeyCode.RightAlt))
         {
             ShowArrow();
+            UIManager.Instance.ShowNewTarget(targetTransform,false);
         }
 
         // 2. Lógica de Rotación (solo si hay un objetivo)

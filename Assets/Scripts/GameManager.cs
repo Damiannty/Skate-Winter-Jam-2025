@@ -52,11 +52,14 @@ public class GameManager : MonoBehaviour
 
     private void Update()
     {
-        if (isDelivering)
-        {
-            currentTimer += Time.deltaTime;
-            // UIManager.Instance.UpdateTimer(currentTimer);
-        }
+       if (isDelivering)
+    {
+        // Acumula el tiempo segundo a segundo
+        currentTimer += Time.deltaTime;
+
+        // Enviamos el valor bruto (ej: 75.432) al UIManager
+        UIManager.Instance.UpdateTimer(currentTimer);
+     }
     }
 
     // --- Lógica Principal ---
@@ -86,7 +89,7 @@ public class GameManager : MonoBehaviour
             Debug.Log($"Nuevo pedido! Ve a: {currentActiveDoor.name}");
 
             // Notificar UI (Pasamos el Transform de la puerta activa para la flecha/UI)
-            UIManager.Instance.ShowNewTarget(currentActiveDoor.transform);
+            UIManager.Instance.ShowNewTarget(currentActiveDoor.transform,true);
             OnNewOrderReceived?.Invoke(currentActiveDoor.transform);
         }
     }
@@ -102,8 +105,9 @@ public class GameManager : MonoBehaviour
         float finalScore = CalculateScore(trickScore);
 
         // 2. Notificar UI y eventos
-        UIManager.Instance.UpdateScore(finalScore); // Si tienes este método en tu UIManager
+        UIManager.Instance.ShowFinalScore(finalScore); // Si tienes este método en tu UIManager
         UIManager.Instance.ShowDeliveryComplete();
+        UIManager.Instance.ResetTimer();
         OnDeliveryCompleted?.Invoke(finalScore);
 
         // 3. Iniciar siguiente pedido
