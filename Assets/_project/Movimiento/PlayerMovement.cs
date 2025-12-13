@@ -1,71 +1,61 @@
-using System.Collections;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController : MonoBehaviour
 {
-    [Header("--- REFERENCIAS ---")]
-    [SerializeField] private Transform _skateTransform; 
-    private SpriteRenderer _spriteRenderer; 
+    [Header("--- CONFIGURACIÓN TRUCOS ---")]
+    [Tooltip("Tiempo máximo entre teclas (Q->E->Espacio).")]
+    public float comboTimeout = 0.5f; 
+    [Tooltip("Duración de la animación del TRUCO.")]
+    public float trickDuration = 2.0f; 
+    [Tooltip("Duración de la animación de CAÍDA (Crash).")]
+    public float crashDuration = 2.0f; 
 
-    [Header("--- INPUT DE SECUENCIA (SALTO) ---")]
+    [Header("--- INPUT SALTO (S -> W) ---")]
     public float jumpSequenceWindow = 0.25f; 
 
-    [Header("--- TRUCOS (COMBO AÉREO) ---")]
-    public float comboTimeout = 0.5f; 
-    
-    [Tooltip("Tiempo (segundos) que dura el truco. Durante este tiempo eres ROJO y si tocas suelo te estrellas.")]
-    public float trickDuration = 1.0f; // <--- NUEVA VARIABLE MODIFICABLE
-
-    [Tooltip("Tiempo (segundos) que te quedas aturdido (VERDE) y sin control si aterrizas mal.")]
-    public float crashDuration = 1.5f; // <--- NUEVA VARIABLE MODIFICABLE
-
-    private int comboStep = 0; 
-    private float lastComboTime; 
-    private bool isDoingTrick = false; 
-    private Coroutine currentTrickRoutine; 
-
-    [Header("--- MOVIMIENTO SUELO ---")]
+    [Header("--- MOVIMIENTO ---")]
     public float maxSpeed = 12f;
     public float acceleration = 60f; 
     public float braking = 40f; 
     public float friction = 5f; 
-
-    [Header("--- MOVIMIENTO PICADO ---")]
     public float diveAcceleration = 100f; 
     public float diveAngleThreshold = 30f;
 
-    [Header("--- SALTO & GRAVEDAD ---")]
+    [Header("--- FÍSICAS ---")]
     public float jumpForce = 20f;
     public float jumpCutMultiplier = 0.5f; 
     public float gravityScale = 5f;        
     public float fallGravityMult = 1.5f;
-
-    [Header("--- DETECCIÓN ---")]
     public Transform groundCheck;
     public Vector2 groundCheckSize = new Vector2(0.5f, 0.1f); 
     public LayerMask groundLayer;
     public float coyoteTime = 0.1f;
     public float jumpBufferTime = 0.1f;
 
-    // --- VARIABLES ---
+    // --- ESTADOS PÚBLICOS (Para el Animator) ---
+    public bool IsGrounded { get; private set; }
+    public bool IsDoingTrick { get; private set; } 
+    public bool IsCrashed { get; private set; }    
+    public float MoveInput { get; private set; }   
+
+    // --- VARIABLES INTERNAS ---
     private Rigidbody2D rb;
-    private float moveInput;
-    private bool isGrounded;
     private float coyoteCounter;
     private float bufferCounter;
-    private float knockbackCounter; 
-    private bool isFacingRight = true;
-
-    private float lastDownPressTime = -100f; 
-    private Color originalColor; 
+    
+    // Temporizadores
+    private float trickTimer;     // Cuenta atrás del truco
+    private float crashTimer;     // Cuenta atrás del golpe
+    private float lastDownPressTime = -100f;
+    
+    // Combo
+    private int comboStep = 0;
+    private float lastComboTime;
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        _spriteRenderer = GetComponentInChildren<SpriteRenderer>();
-        if (_spriteRenderer != null) originalColor = _spriteRenderer.color;
-        if (_skateTransform == null) _skateTransform = transform;
     }
 
     private void Start()
@@ -79,121 +69,69 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        // SI ESTAMOS BLOQUEADOS (Por Barril o por Crash)
-        if (knockbackCounter > 0)
+        // 1. GESTIÓN DE TEMPORIZADORES
+        // Si hay tiempo de Crash, restamos
+        if (crashTimer > 0)
         {
-            knockbackCounter -= Time.deltaTime;
-            
-            // Si el tiempo de crash se acaba, restauramos el color
-            if (knockbackCounter <= 0 && _spriteRenderer != null)
-            {
-                _spriteRenderer.color = originalColor;
-            }
-            return; 
+            crashTimer -= Time.deltaTime;
+            IsCrashed = true;
+            IsDoingTrick = false; // El golpe cancela el truco
+            return; // BLOQUEO DE INPUTS TOTAL
+        }
+        else
+        {
+            IsCrashed = false;
         }
 
-        moveInput = Input.GetAxisRaw("Horizontal");
+        // Si hay tiempo de Truco, restamos
+        if (trickTimer > 0)
+        {
+            trickTimer -= Time.deltaTime;
+            IsDoingTrick = true;
+        }
+        else
+        {
+            IsDoingTrick = false;
+        }
 
-        HandleJumpSequence();
-        HandleAirCombo();
+        // 2. INPUTS
+        MoveInput = Input.GetAxisRaw("Horizontal");
+        
+        HandleJumpSequence(); // S -> W
+        HandleAirCombo();     // Q -> E -> Espacio
 
-        bool upKeyReleased = Input.GetKeyUp(KeyCode.W) || Input.GetKeyUp(KeyCode.UpArrow);
-        if (upKeyReleased && rb.linearVelocity.y > 0f)
+        // Salto variable
+        if ((Input.GetKeyUp(KeyCode.W) || Input.GetKeyUp(KeyCode.UpArrow)) && rb.linearVelocity.y > 0f)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.y * jumpCutMultiplier);
             coyoteCounter = 0f; 
         }
-
-        if (isGrounded)
-        {
-            if (moveInput > 0 && !isFacingRight) Flip();
-            else if (moveInput < 0 && isFacingRight) Flip();
-        }
-    }
-
-    // --- LÓGICA DE TRUCOS ---
-    private void HandleAirCombo()
-    {
-        if (isGrounded) { comboStep = 0; return; }
-        if (Time.time - lastComboTime > comboTimeout && comboStep > 0) comboStep = 0;
-        if (isDoingTrick) return; 
-
-        if (comboStep == 0)
-        {
-            if (Input.GetKeyDown(KeyCode.Q)) { comboStep = 1; lastComboTime = Time.time; }
-        }
-        else if (comboStep == 1)
-        {
-            if (Input.GetKeyDown(KeyCode.E)) { comboStep = 2; lastComboTime = Time.time; }
-        }
-        else if (comboStep == 2)
-        {
-            if (Input.GetKeyDown(KeyCode.Space))
-            {
-                if (currentTrickRoutine != null) StopCoroutine(currentTrickRoutine);
-                currentTrickRoutine = StartCoroutine(PerformTrickVisuals());
-                comboStep = 0; 
-            }
-        }
-    }
-
-    private IEnumerator PerformTrickVisuals()
-    {
-        isDoingTrick = true; 
-
-        if (_spriteRenderer != null) _spriteRenderer.color = Color.red;
-
-        // USA LA VARIABLE NUEVA (trickDuration)
-        yield return new WaitForSeconds(trickDuration);
-
-        if (_spriteRenderer != null) _spriteRenderer.color = originalColor;
-        isDoingTrick = false; 
-    }
-
-    // --- LÓGICA DE CHOQUE (CRASH) ---
-    private void TriggerCrash()
-    {
-        if (currentTrickRoutine != null) StopCoroutine(currentTrickRoutine);
-        isDoingTrick = false;
-
-        if (_spriteRenderer != null) _spriteRenderer.color = Color.green;
-
-        // USA LA VARIABLE NUEVA (crashDuration)
-        knockbackCounter = crashDuration; 
-        
-        Debug.Log("¡CRASH! Aterrizaje fallido.");
-    }
-
-    private void HandleJumpSequence()
-    {
-        if (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow)) lastDownPressTime = Time.time;
-
-        if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow))
-        {
-            float timeSinceDown = Time.time - lastDownPressTime;
-            if (timeSinceDown <= jumpSequenceWindow)
-            {
-                bufferCounter = jumpBufferTime;
-                lastDownPressTime = -100f; 
-            }
-        }
-        bufferCounter -= Time.deltaTime;
     }
 
     private void FixedUpdate()
     {
-        bool wasGrounded = isGrounded;
-        isGrounded = Physics2D.OverlapBox(groundCheck.position, groundCheckSize, 0f, groundLayer);
+        IsGrounded = Physics2D.OverlapBox(groundCheck.position, groundCheckSize, 0f, groundLayer);
 
-        // DETECCIÓN DE ATERRIZAJE FALLIDO
-        if (isGrounded && isDoingTrick)
+        // --- LÓGICA DE ATERRIZAJE FALLIDO ---
+        // Si tocamos suelo MIENTRAS el temporizador de truco está activo
+        if (IsGrounded && trickTimer > 0)
         {
-            TriggerCrash();
+            Debug.Log("¡CRASH! Aterrizaje durante truco.");
+            trickTimer = 0; // Cancelar truco
+            crashTimer = crashDuration; // Activar Crash
+            IsCrashed = true;
         }
 
-        if (knockbackCounter > 0) { ApplyGravity(); return; }
+        // Si estamos estrellados, solo aplicamos gravedad y fricción de suelo
+        if (IsCrashed) 
+        { 
+            ApplyGravity();
+            // Frenado suave al caerse
+            rb.linearVelocity = Vector2.Lerp(rb.linearVelocity, Vector2.zero, 5f * Time.fixedDeltaTime);
+            return; 
+        }
 
-        if (isGrounded) coyoteCounter = coyoteTime;
+        if (IsGrounded) coyoteCounter = coyoteTime;
         else coyoteCounter -= Time.deltaTime;
 
         ApplyMovement();
@@ -201,54 +139,102 @@ public class PlayerController : MonoBehaviour
         CheckJump();
     }
 
+    // --- SISTEMA DE COMBOS Q-E-ESPACIO ---
+    private void HandleAirCombo()
+    {
+        // Si tocamos suelo, reseteamos el combo
+        if (IsGrounded) 
+        { 
+            if (comboStep > 0) Debug.Log("Combo reseteado por tocar suelo");
+            comboStep = 0; 
+            return; 
+        }
+
+        // Si tardamos mucho, reseteamos
+        if (Time.time - lastComboTime > comboTimeout && comboStep > 0) 
+        {
+            comboStep = 0;
+        }
+
+        // Si ya estamos haciendo el truco, no hacemos nada
+        if (IsDoingTrick) return;
+
+        // PASO 1: Q
+        if (comboStep == 0)
+        {
+            if (Input.GetKeyDown(KeyCode.Q)) 
+            { 
+                comboStep = 1; 
+                lastComboTime = Time.time;
+                Debug.Log("Combo: Q detectada");
+            }
+        }
+        // PASO 2: E
+        else if (comboStep == 1)
+        {
+            if (Input.GetKeyDown(KeyCode.E)) 
+            { 
+                comboStep = 2; 
+                lastComboTime = Time.time;
+                Debug.Log("Combo: E detectada");
+            }
+        }
+        // PASO 3: Espacio
+        else if (comboStep == 2)
+        {
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                Debug.Log("¡TRUCO ACTIVADO!");
+                trickTimer = trickDuration; // ACTIVAR TEMPORIZADOR DEL TRUCO
+                comboStep = 0; 
+            }
+        }
+    }
+
+    // --- RESTO DE MOVIMIENTO ---
     private void ApplyMovement()
     {
         Vector3 intendedDir = GetInputDirectionVector();
 
-        if (!isGrounded)
+        if (!IsGrounded) // AIRE
         {
             float verticalThreshold = -Mathf.Sin(diveAngleThreshold * Mathf.Deg2Rad);
             bool isDiving = intendedDir.y < verticalThreshold;
-
-            if (isDiving && moveInput != 0) rb.AddForce(intendedDir * diveAcceleration);
+            if (isDiving && MoveInput != 0) rb.AddForce(intendedDir * diveAcceleration);
             return; 
         }
 
+        // SUELO
         float currentSpeedInDir = Vector2.Dot(rb.linearVelocity, intendedDir);
-        float targetSpeed = Mathf.Abs(moveInput) * maxSpeed; 
+        float targetSpeed = Mathf.Abs(MoveInput) * maxSpeed; 
         float speedDif = targetSpeed - currentSpeedInDir;
-
-        float accelRate = 0;
-
-        if (Mathf.Abs(moveInput) > 0.01f)
-        {
-            if (currentSpeedInDir < targetSpeed)
-            {
-                if (currentSpeedInDir > maxSpeed) accelRate = 0;
-                else accelRate = acceleration;
-            }
-            else accelRate = 0; 
-        }
-        else
-        {
-            accelRate = friction; 
-            if(rb.linearVelocity.magnitude > 0.1f)
-            {
-                intendedDir = -rb.linearVelocity.normalized;
-                speedDif = rb.linearVelocity.magnitude;
-            }
-        }
+        float accelRate = (Mathf.Abs(MoveInput) > 0.01f) ? acceleration : friction;
         
+        if(Mathf.Abs(MoveInput) > 0.01f && currentSpeedInDir > maxSpeed) accelRate = 0; // Inercia
+        if(MoveInput == 0 && rb.linearVelocity.magnitude > 0.1f) 
+        {
+             intendedDir = -rb.linearVelocity.normalized;
+             speedDif = rb.linearVelocity.magnitude;
+        }
+
         float projectedVel = Vector2.Dot(rb.linearVelocity, intendedDir);
-        if (moveInput != 0 && projectedVel < -0.1f) accelRate = braking;
+        if (MoveInput != 0 && projectedVel < -0.1f) accelRate = braking;
 
         rb.AddForce(intendedDir * speedDif * accelRate);
     }
 
-    private void ApplyGravity()
+    private void HandleJumpSequence()
     {
-        if (rb.linearVelocity.y < 0) rb.gravityScale = gravityScale * fallGravityMult;
-        else rb.gravityScale = gravityScale;
+        if (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow)) lastDownPressTime = Time.time;
+        if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow))
+        {
+            if (Time.time - lastDownPressTime <= jumpSequenceWindow)
+            {
+                bufferCounter = jumpBufferTime;
+                lastDownPressTime = -100f; 
+            }
+        }
+        bufferCounter -= Time.deltaTime;
     }
 
     private void CheckJump()
@@ -261,36 +247,24 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    private void ApplyGravity()
+    {
+        if (rb.linearVelocity.y < 0) rb.gravityScale = gravityScale * fallGravityMult;
+        else rb.gravityScale = gravityScale;
+    }
+
     public void ApplyKnockback(Vector2 direction, float force, float duration)
     {
-        knockbackCounter = duration;
+        crashTimer = duration; // Usamos el crash timer para el knockback también
         rb.linearVelocity = Vector2.zero;
         rb.linearVelocity = direction * force;
     }
 
-    private void Flip()
-    {
-        isFacingRight = !isFacingRight;
-        Vector3 scale = transform.localScale;
-        scale.x *= -1;
-        transform.localScale = scale;
-    }
-
     private Vector3 GetInputDirectionVector()
     {
-        if (moveInput == 0) return Vector3.zero;
-        Vector3 dir = Vector3.right;
-        dir = Quaternion.Euler(0, 0, rb.rotation) * dir;
-        dir *= moveInput;
+        if (MoveInput == 0) return Vector3.zero;
+        Vector3 dir = Quaternion.Euler(0, 0, rb.rotation) * Vector3.right;
+        dir *= MoveInput;
         return dir;
-    }
-
-    private void OnDrawGizmos()
-    {
-        if (groundCheck != null)
-        {
-            Gizmos.color = isGrounded ? Color.green : Color.red;
-            Gizmos.DrawWireCube(groundCheck.position, groundCheckSize);
-        }
     }
 }

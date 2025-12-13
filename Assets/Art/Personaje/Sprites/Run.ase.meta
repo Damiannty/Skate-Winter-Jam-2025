@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: b81614cdf81fa0148aa3a63545362ad3
+guid: b1dfa3f030dd0e94b9a2d1b3f3ff0bd3
 ScriptedImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -72,7 +72,7 @@ ScriptedImporter:
     textureFormatSet: 0
     applyGammaDecoding: 0
   previousAsepriteImporterSettings:
-    fileImportMode: 1
+    fileImportMode: 0
     importHiddenLayers: 0
     layerImportMode: 1
     defaultPivotSpace: 0
@@ -85,7 +85,7 @@ ScriptedImporter:
     addSortingGroup: 1
     addShadowCasters: 0
   asepriteImporterSettings:
-    fileImportMode: 1
+    fileImportMode: 0
     importHiddenLayers: 0
     layerImportMode: 1
     defaultPivotSpace: 0
@@ -98,7 +98,7 @@ ScriptedImporter:
     addSortingGroup: 1
     addShadowCasters: 0
   importFileNodeState: 1
-  platformSettingsDirtyTick: 0
+  platformSettingsDirtyTick: 639012269428551903
   textureAssetName: 
   singleSpriteImportData:
   - name: 
@@ -123,9 +123,9 @@ ScriptedImporter:
     tessellationDetail: 0
     uvTransform: {x: 0, y: 0}
   animatedSpriteImportData:
-  - name: suelo 1 skate
+  - name: Run
     originalName: 
-    pivot: {x: 0.503937, y: -0.08}
+    pivot: {x: 0.4464286, y: -0.008333334}
     alignment: 9
     border: {x: 0, y: 0, z: 0, w: 0}
     customData: 
@@ -133,9 +133,9 @@ ScriptedImporter:
       serializedVersion: 2
       x: 4
       y: 4
-      width: 127
-      height: 25
-    spriteID: 7a7d32343ff89414caf054833686b9f0
+      width: 56
+      height: 120
+    spriteID: b88aefa442ee63c46a79cb17ca812629
     spriteBone: []
     spriteOutline: []
     vertices: []
@@ -143,30 +143,72 @@ ScriptedImporter:
     indices: 
     edges: []
     tessellationDetail: 0
-    uvTransform: {x: 4, y: 4}
-  spriteSheetImportData: []
+    uvTransform: {x: -3, y: 3}
+  spriteSheetImportData:
+  - name: Run_0
+    originalName: 
+    pivot: {x: 0.5, y: 0.5}
+    alignment: 0
+    border: {x: 0, y: 0, z: 0, w: 0}
+    customData: 
+    rect:
+      serializedVersion: 2
+      x: 4
+      y: 68
+      width: 54
+      height: 56
+    spriteID: 6106970bd09fad340a5b89f94b8c3c56
+    spriteBone: []
+    spriteOutline: []
+    vertices: []
+    spritePhysicsOutline: []
+    indices: 
+    edges: []
+    tessellationDetail: 0
+    uvTransform: {x: 0, y: 0}
+  - name: Run_1
+    originalName: 
+    pivot: {x: 0.5, y: 0.5}
+    alignment: 0
+    border: {x: 0, y: 0, z: 0, w: 0}
+    customData: 
+    rect:
+      serializedVersion: 2
+      x: 4
+      y: 4
+      width: 56
+      height: 55
+    spriteID: a5dd02d111744834bad16c844d5f09b4
+    spriteBone: []
+    spriteOutline: []
+    vertices: []
+    spritePhysicsOutline: []
+    indices: 
+    edges: []
+    tessellationDetail: 0
+    uvTransform: {x: 0, y: 0}
   asepriteLayers:
   - layerIndex: 0
     uuid:
-      value0: 820633769
+      value0: 2309169097
       value1: 0
       value2: 0
       value3: 0
     guid: 0
-    name: suelo 1 skate
+    name: Run
     layerFlags: 0
     layerType: 0
     blendMode: 0
     cells:
-    - name: suelo 1 skate
+    - name: Run
       frameIndex: 0
       additiveSortOrder: 0
       cellRect:
-        x: -32
-        y: 2
-        width: 127
-        height: 25
-      spriteId: 7a7d32343ff89414caf054833686b9f0
+        x: 0
+        y: 0
+        width: 64
+        height: 128
+      spriteId: b88aefa442ee63c46a79cb17ca812629
     linkedCells: []
     parentIndex: -1
   platformSettings:
@@ -182,8 +224,32 @@ ScriptedImporter:
     crunchedCompression: 0
     allowsAlphaSplitting: 0
     androidETC2FallbackOverride: 0
+  - name: DefaultTexturePlatform
+    overridden: 0
+    ignorePlatformSupport: 0
+    maxTextureSize: 16384
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    androidETC2FallbackOverride: 0
+  - name: Standalone
+    overridden: 0
+    ignorePlatformSupport: 0
+    maxTextureSize: 16384
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    androidETC2FallbackOverride: 0
   generatePhysicsShape: 0
   secondarySpriteTextures: []
   spritePackingTag: 
-  canvasSize: {x: 64, y: 64}
-  previousTextureSize: {x: 256, y: 64}
+  canvasSize: {x: 64, y: 128}
+  previousTextureSize: {x: 64, y: 128}
