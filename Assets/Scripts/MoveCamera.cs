@@ -13,7 +13,7 @@ public class MoveCamera : MonoBehaviour
     void LateUpdate()
     {
           Transform target = GameManager.Instance.playerTransform;
-        Vector3 desiredPosition = new Vector3(target.position.x, target.position.y, transform.position.z);
+        Vector3 desiredPosition = new Vector3(target.position.x, target.position.y+5, transform.position.z);
         transform.position = Vector3.Lerp(transform.position, desiredPosition, smoothSpeed);
    
     }
